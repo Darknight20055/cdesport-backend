@@ -14,7 +14,7 @@ const badgeRoutes = require('./routes/badgeRoutes');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ✅ Autoriser uniquement le frontend Vercel
+// ✅ Allow only the Vercel frontend
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'https://www.cdesport.com',
   credentials: true
@@ -22,22 +22,27 @@ app.use(cors({
 
 app.use(express.json());
 
-// Connexion MongoDB
+// 🔗 Connect to MongoDB
 connectDB();
 
-// Routes API
+// 🔀 API routes
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/tournament', tournamentParticipantRoutes);
 app.use('/api/ranking', globalRankingRoutes);
 app.use('/api/badges', badgeRoutes);
 
-// ✅ Route test
+// ✅ Basic test route
 app.get('/', (req, res) => {
-  res.send('✅ Backend Render opérationnel !');
+  res.send('✅ Backend is up and running on Render!');
 });
 
-// Lancer serveur
+// ❌ 404 handler for unmatched routes
+app.use((req, res, next) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+// 🚀 Start server
 app.listen(PORT, () => {
-  console.log(`📦 Serveur backend lancé sur le port ${PORT} 🚀`);
+  console.log(`📦 Backend server started on port ${PORT} 🚀`);
 });
