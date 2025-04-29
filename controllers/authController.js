@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const { sendMail } = require('../services/email');
 
-// 🔐 Register with email confirmation (code 6 chiffres)
+// 🔐 Register with 6-digit confirmation code
 exports.register = async (req, res) => {
   try {
     const { pseudo, email, password } = req.body;
@@ -18,7 +18,7 @@ exports.register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const confirmationCode = Math.floor(100000 + Math.random() * 900000);
+    const confirmationCode = Math.floor(100000 + Math.random() * 900000); // 6 digits
 
     const user = await User.create({
       pseudo,
@@ -29,7 +29,7 @@ exports.register = async (req, res) => {
       isAdmin: false,
       isConfirmed: false,
       confirmCode: confirmationCode,
-      confirmCodeExpires: Date.now() + 24 * 60 * 60 * 1000,
+      confirmCodeExpires: Date.now() + 24 * 60 * 60 * 1000, // 24h
     });
 
     const html = `
@@ -46,6 +46,7 @@ exports.register = async (req, res) => {
     });
 
     res.status(201).json({ message: '✅ Registration successful. A confirmation code has been sent to your email.' });
+
   } catch (err) {
     console.error('Registration error:', err);
     res.status(500).json({ error: 'Internal server error.' });
@@ -75,6 +76,7 @@ exports.login = async (req, res) => {
       email: user.email,
       avatar: user.avatar,
     });
+
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Internal server error.' });
@@ -85,7 +87,12 @@ exports.login = async (req, res) => {
 exports.confirmCode = async (req, res) => {
   try {
     const { email, code } = req.body;
-    const user = await User.findOne({ email, confirmCode: Number(code), confirmCodeExpires: { $gt: Date.now() } });
+
+    const user = await User.findOne({
+      email,
+      confirmCode: Number(code),
+      confirmCodeExpires: { $gt: Date.now() },
+    });
 
     if (!user) {
       return res.status(400).json({ error: 'Invalid or expired confirmation code.' });
@@ -97,9 +104,10 @@ exports.confirmCode = async (req, res) => {
     await user.save();
 
     res.json({ message: '✅ Email successfully confirmed!' });
+
   } catch (err) {
     console.error('Email confirmation error:', err);
-    res.status(500).json({ error: 'Internal server error during email confirmation.' });
+    res.status(500).json({ error: 'Internal server error.' });
   }
 };
 
@@ -108,28 +116,20 @@ exports.resendConfirmation = async (req, res) => {
   try {
     const { email } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required.' });
-    }
+    if (!email) return res.status(400).json({ error: 'Email is required.' });
 
     const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: 'No user found with that email.' });
+    if (user.isConfirmed) return res.status(400).json({ error: 'Email is already confirmed.' });
 
-    if (!user) {
-      return res.status(400).json({ error: 'No user found with that email.' });
-    }
-
-    if (user.isConfirmed) {
-      return res.status(400).json({ error: 'Email is already confirmed.' });
-    }
-
-    const newCode = Math.floor(100000 + Math.random() * 900000);
-    user.confirmCode = newCode;
+    const confirmationCode = Math.floor(100000 + Math.random() * 900000);
+    user.confirmCode = confirmationCode;
     user.confirmCodeExpires = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
 
     const html = `
       <h1>Confirm Your Email</h1>
-      <p>Your new confirmation code is: <b>${newCode}</b></p>
+      <p>Your new confirmation code is: <b>${confirmationCode}</b></p>
       <p>Enter this code on the website to activate your account.</p>
     `;
 
@@ -140,6 +140,7 @@ exports.resendConfirmation = async (req, res) => {
     });
 
     res.json({ message: '📨 New confirmation code sent.' });
+
   } catch (err) {
     console.error('Resend confirmation error:', err);
     res.status(500).json({ error: 'Internal server error.' });
@@ -175,6 +176,7 @@ exports.forgotPassword = async (req, res) => {
     });
 
     res.json({ message: '📨 Password reset email sent.' });
+
   } catch (err) {
     console.error('Forgot password error:', err);
     res.status(500).json({ error: 'Internal server error.' });
@@ -203,6 +205,7 @@ exports.resetPassword = async (req, res) => {
     await user.save();
 
     res.json({ message: '✅ Password successfully updated.' });
+
   } catch (err) {
     console.error('Reset password error:', err);
     res.status(500).json({ error: 'Internal server error.' });
