@@ -33,7 +33,7 @@ exports.register = async (req, res) => {
 
     const token = crypto.randomBytes(32).toString('hex');
     user.confirmToken = crypto.createHash('sha256').update(token).digest('hex');
-    user.confirmTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    user.confirmTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24h
     await user.save();
 
     const confirmURL = `${process.env.CLIENT_URL}/confirm/${token}`;
@@ -104,7 +104,7 @@ exports.confirmEmail = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ error: 'Invalid or expired token.' });
+      return res.status(400).send('<h1>❌ Invalid or expired confirmation token.</h1>');
     }
 
     user.isConfirmed = true;
@@ -112,11 +112,10 @@ exports.confirmEmail = async (req, res) => {
     user.confirmTokenExpires = undefined;
     await user.save();
 
-    res.redirect(`${process.env.CLIENT_URL}/login?confirmed=true`);
-
+    res.redirect(301, `${process.env.CLIENT_URL}/login?confirmed=true`);
   } catch (err) {
     console.error('Email confirmation error:', err);
-    res.status(500).json({ error: 'Internal server error.' });
+    res.status(500).send('<h1>❌ Internal server error during email confirmation.</h1>');
   }
 };
 
