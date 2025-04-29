@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const TournamentParticipant = require('../models/TournamentParticipant');
 const Tournament = require('../models/Tournament');
-const protect = require('../middleware/authMiddleware'); // JWT middleware
+const protect = require('../middleware/protect'); // JWT middleware
 const requireAdmin = require('../middleware/requireAdmin'); // admin check
 
 // ✅ Basic test route
