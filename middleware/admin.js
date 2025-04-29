@@ -2,9 +2,9 @@ const User = require('../models/User');
 
 const admin = async (req, res, next) => {
   try {
-    // 🛡️ Vérifie d'abord si req.user existe
+    // 🛡️ First, check if req.user exists
     if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "Non autorisé, utilisateur non authentifié" });
+      return res.status(401).json({ message: "Unauthorized: User not authenticated." });
     }
 
     const user = await User.findById(req.user.id);
@@ -12,11 +12,11 @@ const admin = async (req, res, next) => {
     if (user && user.isAdmin) {
       next();
     } else {
-      res.status(403).json({ message: "Accès interdit : Admins uniquement." });
+      res.status(403).json({ message: "Access denied: Admins only." });
     }
   } catch (error) {
-    console.error("Erreur middleware admin:", error.message);
-    res.status(500).json({ message: "Erreur serveur." });
+    console.error("admin middleware error:", error.message);
+    res.status(500).json({ message: "Internal server error." });
   }
 };
 

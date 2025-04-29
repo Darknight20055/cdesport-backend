@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
   bio: { type: String },
 
   badges: {
-    type: [String], // 🎯 Liste des badges
+    type: [String], // 🎯 List of badges
     default: [],
   },
 
@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema({
     default: false,
   },
 
-  // ✅ Confirmation d'email
+  // ✅ Email confirmation
   isConfirmed: {
     type: Boolean,
     default: false,
@@ -25,9 +25,15 @@ const userSchema = new mongoose.Schema({
   confirmToken: String,
   confirmTokenExpires: Date,
 
-  // ✅ Reset mot de passe
+  // ✅ Password reset
   resetPasswordToken: String,
   resetPasswordExpires: Date,
+
+  // 🆕 XP system
+  xp: {
+    type: Number,
+    default: 0,
+  },
 }, {
   timestamps: true
 });

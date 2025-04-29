@@ -14,23 +14,23 @@ const protect = async (req, res, next) => {
       const user = await User.findById(decoded.id).select('-password');
 
       if (!user) {
-        return res.status(401).json({ message: 'Utilisateur non trouvé' });
+        return res.status(401).json({ message: 'User not found.' });
       }
 
-      // 🔥 on ajoute les champs qu’on veut utiliser après
+      // 🔥 Attach user info to request object
       req.user = {
         id: user._id,
         pseudo: user.pseudo,
-        avatar: user.avatar
+        avatar: user.avatar,
       };
 
       next();
     } catch (error) {
       console.error(error);
-      return res.status(401).json({ message: 'Token invalide' });
+      return res.status(401).json({ message: 'Invalid token.' });
     }
   } else {
-    return res.status(401).json({ message: 'Pas de token fourni' });
+    return res.status(401).json({ message: 'No token provided.' });
   }
 };
 

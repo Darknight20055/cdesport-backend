@@ -1,4 +1,3 @@
-// backend/services/email.js
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
@@ -13,8 +12,8 @@ const transporter = nodemailer.createTransport({
 
 async function sendMail({ to, subject, html }) {
   try {
-    console.log('📨 Tentative d\'envoi email à :', to);
-    console.log('✉️ Sujet :', subject);
+    console.log('📨 Attempting to send email to:', to);
+    console.log('✉️ Subject:', subject);
 
     const info = await transporter.sendMail({
       from: `"CDesport" <${process.env.SMTP_USER}>`,
@@ -23,11 +22,11 @@ async function sendMail({ to, subject, html }) {
       html,
     });
 
-    console.log('✅ Email envoyé ! ID Message :', info.messageId);
+    console.log('✅ Email sent! Message ID:', info.messageId);
 
   } catch (error) {
-    console.error('❌ Erreur envoi email :', error.message);
-    throw new Error('Erreur lors de l’envoi de l’email. Vérifie ton SMTP.');
+    console.error('❌ Error sending email:', error.message);
+    throw new Error('Failed to send email. Check your SMTP configuration.');
   }
 }
 

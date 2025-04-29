@@ -1,21 +1,20 @@
-// backend/routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 
-// 🔐 Inscription
+// 🔐 Register
 router.post('/register', authController.register);
 
-// 🔑 Connexion
+// 🔑 Login
 router.post('/login', authController.login);
 
-// 📧 Confirmation d'email
+// 📧 Email confirmation
 router.get('/confirm/:token', authController.confirmEmail);
 
-// 🔒 Mot de passe oublié (Forgot password)
+// 🔒 Forgot password
 router.post('/forgot-password', authController.forgotPassword);
 
-// 🔒 Réinitialisation du mot de passe
+// 🔒 Reset password
 router.put('/reset-password/:token', authController.resetPassword);
 
 module.exports = router;

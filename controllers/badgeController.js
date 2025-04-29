@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 exports.assignBadgesAtMonthEnd = async (req, res) => {
   try {
-    const currentMonth = new Date().toISOString().slice(0, 7); // Ex: "2025-04"
+    const currentMonth = new Date().toISOString().slice(0, 7); // e.g., "2025-04"
 
     const topPlayers = await GlobalRanking.find({ month: currentMonth })
       .sort({ points: -1 })
@@ -14,7 +14,7 @@ exports.assignBadgesAtMonthEnd = async (req, res) => {
       const user = await User.findById(ranking.userId);
 
       if (user) {
-        let badge = "";
+        let badge = '';
 
         if (i === 0) badge = `🥇 Top 1 - ${currentMonth}`;
         else if (i === 1) badge = `🥈 Top 2 - ${currentMonth}`;
@@ -26,9 +26,9 @@ exports.assignBadgesAtMonthEnd = async (req, res) => {
       }
     }
 
-    res.status(200).json({ message: "Badges attribués avec succès ✅" });
+    res.status(200).json({ message: '✅ Badges successfully assigned.' });
   } catch (err) {
-    console.error("Erreur assignBadgesAtMonthEnd:", err);
-    res.status(500).json({ error: "Erreur serveur." });
+    console.error('assignBadgesAtMonthEnd error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 };

@@ -1,36 +1,35 @@
-// backend/routes/tournamentRoutes.js
 const express = require('express');
 const router = express.Router();
 const TournamentParticipant = require('../models/TournamentParticipant');
-const protect = require('../middleware/authMiddleware'); // middleware JWT
+const protect = require('../middleware/authMiddleware'); // JWT middleware
 
-// Test basique (tu peux garder)
+// Basic test route (you can keep it)
 router.get('/', (req, res) => {
-  res.send('Liste des tournois');
+  res.send('List of tournaments');
 });
 
-// ✅ Route pour inscrire un joueur au tournoi
+// ✅ Route to register a player to a tournament
 router.post('/register', protect, async (req, res) => {
   try {
     const { pseudo, avatar, tournamentName } = req.body;
 
-    // Vérifie les données reçues
+    // Check required fields
     if (!pseudo || !avatar) {
-      return res.status(400).json({ message: 'Pseudo et avatar requis.' });
+      return res.status(400).json({ message: 'Pseudo and avatar are required.' });
     }
 
     const participant = new TournamentParticipant({
-      user: req.user._id, // récupéré par ton middleware JWT
+      user: req.user._id, // provided by JWT middleware
       pseudo,
       avatar,
-      tournamentName, // optionnel (valeur par défaut utilisée sinon)
+      tournamentName, // optional (default value used if not provided)
     });
 
     const savedParticipant = await participant.save();
     res.status(201).json(savedParticipant);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Erreur serveur" });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

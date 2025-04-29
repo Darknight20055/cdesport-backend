@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { assignBadgesAtMonthEnd } = require('../controllers/badgeController');
 const protect = require('../middleware/auth');
-const admin = require('../middleware/admin'); // ✅ On importe le middleware admin
+const admin = require('../middleware/admin'); // ✅ Admin middleware
 
-// Cette route sera appelée MANUELLEMENT à la fin du mois
-router.post('/assign', protect, admin, assignBadgesAtMonthEnd); // ✅ On ajoute admin ici
+// This route is called MANUALLY at the end of the month
+router.post('/assign', protect, admin, assignBadgesAtMonthEnd); // ✅ Admin required
 
 module.exports = router;

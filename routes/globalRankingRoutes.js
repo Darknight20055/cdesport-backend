@@ -3,10 +3,10 @@ const router = express.Router();
 const protect = require('../middleware/auth');
 const { updateRankingAfterTournament, getTopRanking } = require('../controllers/globalRankingController');
 
-// 🔥 Route pour mettre à jour les points après un tournoi
+// 🔥 Route to update points after a tournament
 router.post('/update', protect, updateRankingAfterTournament);
 
-// 🔍 Route pour récupérer le Top 10 des joueurs
+// 🔍 Route to get the Top 10 players of the month
 router.get('/top', getTopRanking);
 
 module.exports = router;

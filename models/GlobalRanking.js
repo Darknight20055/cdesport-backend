@@ -12,7 +12,7 @@ const GlobalRankingSchema = new mongoose.Schema({
     default: 0,
   },
   month: {
-    type: String, // Exemple : "2025-04"
+    type: String, // Example: "2025-04"
     required: true,
   }
 });

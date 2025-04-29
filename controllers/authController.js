@@ -4,18 +4,18 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const { sendMail } = require('../services/email');
 
-// 🔐 Inscription avec email de confirmation
+// 🔐 Register with email confirmation
 exports.register = async (req, res) => {
   try {
     const { pseudo, email, password } = req.body;
 
     if (!pseudo || !email || !password) {
-      return res.status(400).json({ error: 'Tous les champs sont requis.' });
+      return res.status(400).json({ error: 'All fields are required.' });
     }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: 'Email déjà utilisé.' });
+      return res.status(400).json({ error: 'Email is already in use.' });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -38,45 +38,45 @@ exports.register = async (req, res) => {
 
     const confirmURL = `${process.env.CLIENT_URL}/confirm/${token}`;
     const html = `
-      <h1>Confirme ton email</h1>
-      <p>Bienvenue sur CDesport, ${pseudo} !</p>
-      <p>Clique ici : <a href="${confirmURL}">Confirmer mon email</a></p>
-      <p><b>Attention :</b> Ce lien expire dans 24 heures.</p>
+      <h1>Confirm Your Email</h1>
+      <p>Welcome to CDesport, ${pseudo}!</p>
+      <p>Click here: <a href="${confirmURL}">Confirm your email</a></p>
+      <p><b>Note:</b> This link expires in 24 hours.</p>
     `;
 
     await sendMail({
       to: email,
-      subject: 'Confirme ton email CDesport 🚀',
+      subject: 'Confirm your CDesport email 🚀',
       html,
     });
 
     res.status(201).json({
-      message: '✅ Inscription réussie, un email de confirmation a été envoyé.',
+      message: '✅ Registration successful. A confirmation email has been sent.',
     });
 
   } catch (err) {
-    console.error('Erreur inscription :', err);
-    res.status(500).json({ error: 'Erreur interne du serveur.' });
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 };
 
-// 🔑 Connexion
+// 🔑 Login
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email }).select('+password +isConfirmed');
     if (!user) {
-      return res.status(400).json({ error: 'Email ou mot de passe invalide.' });
+      return res.status(400).json({ error: 'Invalid email or password.' });
     }
 
     if (!user.isConfirmed) {
-      return res.status(403).json({ error: 'Merci de confirmer ton email avant de te connecter.' });
+      return res.status(403).json({ error: 'Please confirm your email before logging in.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ error: 'Email ou mot de passe invalide.' });
+      return res.status(400).json({ error: 'Invalid email or password.' });
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -90,12 +90,12 @@ exports.login = async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Erreur connexion :', err);
-    res.status(500).json({ error: 'Erreur interne du serveur.' });
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 };
 
-// 📨 Confirmation d’email
+// 📨 Email confirmation
 exports.confirmEmail = async (req, res) => {
   try {
     const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
@@ -106,7 +106,7 @@ exports.confirmEmail = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ error: 'Token invalide ou expiré.' });
+      return res.status(400).json({ error: 'Invalid or expired token.' });
     }
 
     user.isConfirmed = true;
@@ -117,19 +117,19 @@ exports.confirmEmail = async (req, res) => {
     res.redirect(`${process.env.CLIENT_URL}/login?confirmed=true`);
 
   } catch (err) {
-    console.error('Erreur confirmation email :', err);
-    res.status(500).json({ error: 'Erreur interne du serveur.' });
+    console.error('Email confirmation error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 };
 
-// 📨 Mot de passe oublié
+// 📨 Forgot password
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ error: 'Aucun compte trouvé avec cet email.' });
+      return res.status(400).json({ error: 'No account found with that email.' });
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex');
@@ -139,27 +139,27 @@ exports.forgotPassword = async (req, res) => {
 
     const resetURL = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
     const html = `
-      <h1>Réinitialiser ton mot de passe</h1>
-      <p>Tu as demandé une réinitialisation de mot de passe.</p>
-      <p>Clique ici : <a href="${resetURL}">Réinitialiser</a></p>
-      <p>Ce lien expirera dans 1 heure.</p>
+      <h1>Reset Your Password</h1>
+      <p>You requested to reset your password.</p>
+      <p>Click here: <a href="${resetURL}">Reset Password</a></p>
+      <p>This link will expire in 1 hour.</p>
     `;
 
     await sendMail({
       to: user.email,
-      subject: '🔑 Réinitialisation de ton mot de passe CDesport',
+      subject: '🔑 Reset your CDesport password',
       html,
     });
 
-    res.json({ message: '📨 Email de réinitialisation envoyé.' });
+    res.json({ message: '📨 Password reset email sent.' });
 
   } catch (err) {
-    console.error('Erreur forgotPassword :', err);
-    res.status(500).json({ error: 'Erreur interne du serveur.' });
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 };
 
-// 🔒 Réinitialisation du mot de passe
+// 🔒 Reset password
 exports.resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
@@ -173,7 +173,7 @@ exports.resetPassword = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ error: 'Token invalide ou expiré.' });
+      return res.status(400).json({ error: 'Invalid or expired token.' });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -182,12 +182,10 @@ exports.resetPassword = async (req, res) => {
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    res.json({ message: '✅ Mot de passe modifié avec succès.' });
+    res.json({ message: '✅ Password successfully updated.' });
 
   } catch (err) {
-    console.error('Erreur resetPassword :', err);
-    res.status(500).json({ error: 'Erreur interne du serveur.' });
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 };
-
-console.log('🔐 Clé JWT :', process.env.JWT_SECRET);
