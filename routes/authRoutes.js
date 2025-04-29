@@ -8,8 +8,7 @@ router.post('/register', authController.register);
 // 🔑 Login
 router.post('/login', authController.login);
 
-// 📧 Email confirmation par lien
-router.get('/confirm/:token', authController.confirmEmail);
+
 
 // ✅ Confirmation par code (nouvelle route)
 router.post('/confirm-code', authController.confirmCode); // ← ajoute ça

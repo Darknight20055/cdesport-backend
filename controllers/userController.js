@@ -2,27 +2,22 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// ➡️ Create user + return token (signup)
+// ➡️ Create user + return token (signup) — ⚠️ à utiliser uniquement si tu n'utilises pas l'inscription avec confirmation
 exports.createUser = async (req, res) => {
   try {
     const { pseudo, email, password } = req.body;
 
-    // 1️⃣ Required fields
     if (!pseudo || !email || !password) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
-    // 2️⃣ Check if email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: "This email is already in use." });
     }
 
-    // 3️⃣ Hash the password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4️⃣ Create the user
     const user = await User.create({
       pseudo,
       email,
@@ -31,16 +26,15 @@ exports.createUser = async (req, res) => {
       bio: "",
       badges: [],
       isAdmin: false,
+      isConfirmed: true, // ✅ pour ne pas bloquer la connexion
     });
 
-    // 5️⃣ Generate a JWT token
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    // 6️⃣ Return token + user info
     res.status(201).json({
       token,
       user: {
@@ -81,33 +75,37 @@ exports.getUser = async (req, res) => {
 // ➡️ Update a user (Admin only)
 exports.updateUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { password, ...fieldsToUpdate } = req.body;
+    if (password) {
+      return res.status(400).json({ error: "Password update not allowed here." });
+    }
+
+    const user = await User.findByIdAndUpdate(req.params.id, fieldsToUpdate, { new: true }).select('-password');
     if (!user) return res.status(404).json({ error: 'User not found.' });
-    res.json(user);
+
+    res.json({ message: '✅ User updated successfully.', user });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 };
 
-// ➡️ Update own profile (My Account)
+// ➡️ Update own profile
 exports.updateProfile = async (req, res) => {
   try {
-    const { email, pseudo, avatar } = req.body;
+    const { email, pseudo, avatar, bio } = req.body;
     const userId = req.user.id;
 
     const updatedFields = {};
-    if (email)  updatedFields.email  = email;
+    if (email) updatedFields.email = email;
     if (pseudo) updatedFields.pseudo = pseudo;
     if (avatar) updatedFields.avatar = avatar;
+    if (bio) updatedFields.bio = bio;
 
-    const user = await User.findByIdAndUpdate(userId, updatedFields, { new: true });
+    const user = await User.findByIdAndUpdate(userId, updatedFields, { new: true }).select('-password');
+
     res.json({
       message: "✅ Profile updated successfully.",
-      user: {
-        email: user.email,
-        pseudo: user.pseudo,
-        avatar: user.avatar,
-      },
+      user,
     });
   } catch (err) {
     console.error("updateProfile error:", err);
@@ -135,8 +133,7 @@ exports.changePassword = async (req, res) => {
       return res.status(400).json({ error: 'Current password is incorrect.' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
+    user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
     res.json({ message: '✅ Password updated successfully.' });
