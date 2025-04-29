@@ -37,12 +37,12 @@ app.get('/', (req, res) => {
   res.send('✅ Backend is up and running on Render!');
 });
 
-// ❌ 404 handler for unmatched routes
+// ❌ 404 handler
 app.use((req, res, next) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-// 🚀 Start server
-app.listen(PORT, () => {
+// 🚀 Start server with 0.0.0.0 for Render
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`📦 Backend server started on port ${PORT} 🚀`);
 });
