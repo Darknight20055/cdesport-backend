@@ -8,7 +8,6 @@ const { sendMail } = require('../services/email');
 exports.register = async (req, res) => {
   try {
     const { pseudo, email, password } = req.body;
-
     if (!pseudo || !email || !password) {
       return res.status(400).json({ error: 'All fields are required.' });
     }
@@ -18,8 +17,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: 'Email is already in use.' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       pseudo,
@@ -33,7 +31,7 @@ exports.register = async (req, res) => {
 
     const token = crypto.randomBytes(32).toString('hex');
     user.confirmToken = crypto.createHash('sha256').update(token).digest('hex');
-    user.confirmTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24h
+    user.confirmTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
 
     const confirmURL = `${process.env.CLIENT_URL}/confirm/${token}`;
@@ -64,17 +62,12 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email }).select('+password +isConfirmed');
-    if (!user) {
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(400).json({ error: 'Invalid email or password.' });
     }
 
     if (!user.isConfirmed) {
       return res.status(403).json({ error: 'Please confirm your email before logging in.' });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid email or password.' });
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -104,7 +97,7 @@ exports.confirmEmail = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).send('<h1>❌ Invalid or expired confirmation token.</h1>');
+      return res.redirect(`${process.env.CLIENT_URL}/confirm-invalid`);
     }
 
     user.isConfirmed = true;
@@ -112,14 +105,14 @@ exports.confirmEmail = async (req, res) => {
     user.confirmTokenExpires = undefined;
     await user.save();
 
-    res.redirect(301, `${process.env.CLIENT_URL}/login?confirmed=true`);
+    res.redirect(`${process.env.CLIENT_URL}/confirm-success`);
   } catch (err) {
     console.error('Email confirmation error:', err);
-    res.status(500).send('<h1>❌ Internal server error during email confirmation.</h1>');
+    res.redirect(`${process.env.CLIENT_URL}/confirm-error`);
   }
 };
 
-// 🔥 Resend confirmation email
+// 🔁 Resend confirmation email
 exports.resendConfirmation = async (req, res) => {
   try {
     const { email } = req.body;
@@ -129,7 +122,6 @@ exports.resendConfirmation = async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-
     if (!user) {
       return res.status(400).json({ error: "No user found with that email." });
     }
@@ -176,7 +168,7 @@ exports.forgotPassword = async (req, res) => {
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1h
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
     await user.save();
 
     const resetURL = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
@@ -218,8 +210,7 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired token.' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
+    user.password = await bcrypt.hash(newPassword, 10);
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
