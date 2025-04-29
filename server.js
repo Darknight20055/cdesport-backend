@@ -16,28 +16,16 @@ const tournamentRoutes = require('./routes/tournamentRoutes');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ✅ CORS configuration (supporte www.cdesport.com + localhost + preview Vercel si tu veux)
-const allowedOrigins = [
-  'https://www.cdesport.com',
-  'http://localhost:3000',
-  'https://cddesport-7jhcl232w-charlys-projects-d00150b3.vercel.app' // (facultatif: pour testing Vercel)
-];
-
+// ✅ CORS strict — autorise uniquement ton domaine officiel
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: 'https://www.cdesport.com',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
 }));
 
 app.use(express.json());
 
-// 🔗 Connect to MongoDB
+// 🔗 Connect MongoDB
 connectDB();
 
 // 🔀 API routes
@@ -48,17 +36,17 @@ app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/ranking', globalRankingRoutes);
 app.use('/api/badges', badgeRoutes);
 
-// ✅ Basic test route
+// ✅ Test route
 app.get('/', (req, res) => {
   res.send('✅ Backend is up and running!');
 });
 
 // ❌ 404 handler
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-// 🚀 Start server (Render.io requires 0.0.0.0)
+// 🚀 Launch (Render needs 0.0.0.0)
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`📦 Backend server started on port ${PORT} 🚀`);
 });
