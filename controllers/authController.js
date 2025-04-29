@@ -1,191 +1,110 @@
-const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const User = require('../models/User');
-const { sendMail } = require('../services/email');
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { login, register } from '../services/auth';
+import { fetchUserProfile } from '../services/api';
 
-// 🔐 Register with email confirmation
-exports.register = async (req, res) => {
-  try {
-    const { pseudo, email, password } = req.body;
+function AuthForm() {
+  const location = useLocation();
+  const isLogin = location.pathname === '/login';
 
-    if (!pseudo || !email || !password) {
-      return res.status(400).json({ error: 'All fields are required.' });
+  const [pseudo, setPseudo] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+
+  // ✅ Detect ?confirmed=true from email confirmation redirect
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("confirmed") === "true") {
+      setMessage("✅ Your email has been confirmed. You can now log in.");
     }
+  }, [location]);
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ error: 'Email is already in use.' });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      let data;
+      if (isLogin) {
+        // 🔑 Login
+        data = await login(email, password);
+
+        if (!data.token) {
+          throw new Error("Missing token after login.");
+        }
+
+        localStorage.setItem('token', data.token);
+        window.location.href = "/";
+      } else {
+        // 🔐 Register
+        data = await register(pseudo, email, password);
+
+        setMessage("✅ Registration successful! Check your email to confirm your account.");
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage(err.message || 'An error occurred.');
     }
+  };
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+  return (
+    <div className="max-w-md mx-auto p-6 bg-gray-900 text-white rounded-lg shadow-lg mt-12">
+      <h2 className="text-3xl font-bold mb-6 text-center text-cyan-400">
+        {isLogin ? 'Login' : 'Register'}
+      </h2>
 
-    const user = await User.create({
-      pseudo,
-      email,
-      password: hashedPassword,
-      avatar: '',
-      badges: [],
-      isAdmin: false,
-      isConfirmed: false,
-    });
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {!isLogin && (
+          <input
+            type="text"
+            placeholder="Username"
+            className="w-full p-3 bg-gray-800 text-white placeholder-gray-400 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            value={pseudo}
+            onChange={(e) => setPseudo(e.target.value)}
+            required
+          />
+        )}
+        <input
+          type="email"
+          placeholder="Email"
+          className="w-full p-3 bg-gray-800 text-white placeholder-gray-400 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-cyan-400"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          className="w-full p-3 bg-gray-800 text-white placeholder-gray-400 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-cyan-400"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <button
+          type="submit"
+          className={`w-full ${
+            isLogin ? "bg-cyan-500 hover:bg-cyan-600" : "bg-red-500 hover:bg-red-600"
+          } text-white font-bold py-3 rounded transition`}
+        >
+          {isLogin ? 'Log In' : "Sign Up"}
+        </button>
 
-    const token = crypto.randomBytes(32).toString('hex');
-    user.confirmToken = crypto.createHash('sha256').update(token).digest('hex');
-    user.confirmTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24h
-    await user.save();
+        {isLogin && (
+          <div className="text-center mt-4">
+            <a
+              href="/forgot-password"
+              className="text-cyan-400 hover:text-cyan-300 transition font-semibold"
+            >
+              Forgot your password?
+            </a>
+          </div>
+        )}
+      </form>
 
-    const confirmURL = `${process.env.CLIENT_URL}/confirm/${token}`;
-    const html = `
-      <h1>Confirm Your Email</h1>
-      <p>Welcome to CDesport, ${pseudo}!</p>
-      <p>Click here: <a href="${confirmURL}">Confirm your email</a></p>
-      <p><b>Note:</b> This link expires in 24 hours.</p>
-    `;
+      {message && (
+        <p className="mt-4 text-center text-cyan-300 font-semibold">{message}</p>
+      )}
+    </div>
+  );
+}
 
-    await sendMail({
-      to: email,
-      subject: 'Confirm your CDesport email 🚀',
-      html,
-    });
-
-    res.status(201).json({
-      message: '✅ Registration successful. A confirmation email has been sent.',
-    });
-
-  } catch (err) {
-    console.error('Registration error:', err);
-    res.status(500).json({ error: 'Internal server error.' });
-  }
-};
-
-// 🔑 Login
-exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email }).select('+password +isConfirmed');
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid email or password.' });
-    }
-
-    if (!user.isConfirmed) {
-      return res.status(403).json({ error: 'Please confirm your email before logging in.' });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid email or password.' });
-    }
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-    res.json({
-      token,
-      userId: user._id,
-      pseudo: user.pseudo,
-      email: user.email,
-      avatar: user.avatar,
-    });
-
-  } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Internal server error.' });
-  }
-};
-
-// 📨 Email confirmation
-exports.confirmEmail = async (req, res) => {
-  try {
-    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
-
-    const user = await User.findOne({
-      confirmToken: hashedToken,
-      confirmTokenExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid or expired token.' });
-    }
-
-    user.isConfirmed = true;
-    user.confirmToken = undefined;
-    user.confirmTokenExpires = undefined;
-    await user.save();
-
-    res.redirect(`${process.env.CLIENT_URL}/login?confirmed=true`);
-
-  } catch (err) {
-    console.error('Email confirmation error:', err);
-    res.status(500).json({ error: 'Internal server error.' });
-  }
-};
-
-// 📨 Forgot password
-exports.forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ error: 'No account found with that email.' });
-    }
-
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1h
-    await user.save();
-
-    const resetURL = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
-    const html = `
-      <h1>Reset Your Password</h1>
-      <p>You requested to reset your password.</p>
-      <p>Click here: <a href="${resetURL}">Reset Password</a></p>
-      <p>This link will expire in 1 hour.</p>
-    `;
-
-    await sendMail({
-      to: user.email,
-      subject: '🔑 Reset your CDesport password',
-      html,
-    });
-
-    res.json({ message: '📨 Password reset email sent.' });
-
-  } catch (err) {
-    console.error('Forgot password error:', err);
-    res.status(500).json({ error: 'Internal server error.' });
-  }
-};
-
-// 🔒 Reset password
-exports.resetPassword = async (req, res) => {
-  try {
-    const { token } = req.params;
-    const { newPassword } = req.body;
-
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
-    const user = await User.findOne({
-      resetPasswordToken: hashedToken,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid or expired token.' });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    await user.save();
-
-    res.json({ message: '✅ Password successfully updated.' });
-
-  } catch (err) {
-    console.error('Reset password error:', err);
-    res.status(500).json({ error: 'Internal server error.' });
-  }
-};
+export default AuthForm;
