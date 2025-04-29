@@ -14,10 +14,11 @@ const badgeRoutes = require('./routes/badgeRoutes');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ✅ Allow only the Vercel frontend
+// ✅ CORS mieux configuré
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://www.cdesport.com',
-  credentials: true
+  origin: 'https://www.cdesport.com',   // <-- ton vrai domaine, PAS process.env ici !
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
 }));
 
 app.use(express.json());
