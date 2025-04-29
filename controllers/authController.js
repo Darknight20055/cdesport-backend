@@ -33,7 +33,7 @@ exports.register = async (req, res) => {
 
     const token = crypto.randomBytes(32).toString('hex');
     user.confirmToken = crypto.createHash('sha256').update(token).digest('hex');
-    user.confirmTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24h
+    user.confirmTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
     await user.save();
 
     const confirmURL = `${process.env.CLIENT_URL}/confirm/${token}`;
@@ -50,9 +50,7 @@ exports.register = async (req, res) => {
       html,
     });
 
-    res.status(201).json({
-      message: '✅ Registration successful. A confirmation email has been sent.',
-    });
+    res.status(201).json({ message: '✅ Registration successful. A confirmation email has been sent.' });
 
   } catch (err) {
     console.error('Registration error:', err);
@@ -95,7 +93,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// 📨 Email confirmation
+// 📨 Confirm Email
 exports.confirmEmail = async (req, res) => {
   try {
     const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
@@ -122,7 +120,52 @@ exports.confirmEmail = async (req, res) => {
   }
 };
 
-// 📨 Forgot password
+// 🔥 Resend confirmation email
+exports.resendConfirmation = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({ error: "No user found with that email." });
+    }
+
+    if (user.isConfirmed) {
+      return res.status(400).json({ error: "Email is already confirmed." });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    user.confirmToken = crypto.createHash('sha256').update(token).digest('hex');
+    user.confirmTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
+    await user.save();
+
+    const confirmURL = `${process.env.CLIENT_URL}/confirm/${token}`;
+    const html = `
+      <h1>Confirm Your Email</h1>
+      <p>Click here: <a href="${confirmURL}">Confirm your email</a></p>
+      <p>This link expires in 24 hours.</p>
+    `;
+
+    await sendMail({
+      to: email,
+      subject: '🔔 Resend Email Confirmation - CDesport',
+      html,
+    });
+
+    res.json({ message: '📨 Confirmation email re-sent.' });
+
+  } catch (err) {
+    console.error('Resend confirmation error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+// 🔒 Forgot Password
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -159,7 +202,7 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-// 🔒 Reset password
+// 🔒 Reset Password
 exports.resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
