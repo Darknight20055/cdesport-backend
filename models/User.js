@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
   bio: { type: String },
 
   badges: {
-    type: [String], // 🎯 List of badges
+    type: [String],
     default: [],
   },
 
@@ -22,6 +22,9 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  confirmCode: Number, // 🔥 ajouté pour la vérification par code
+  confirmCodeExpires: Date, // 🔥 expiration du code
+
   confirmToken: String,
   confirmTokenExpires: Date,
 
