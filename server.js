@@ -10,13 +10,14 @@ const authRoutes = require('./routes/authRoutes');
 const tournamentParticipantRoutes = require('./routes/tournamentParticipantRoutes');
 const globalRankingRoutes = require('./routes/globalRankingRoutes');
 const badgeRoutes = require('./routes/badgeRoutes');
+const tournamentRoutes = require('./routes/tournamentRoutes'); // 🔥 Ajouté ici
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ✅ CORS mieux configuré
 app.use(cors({
-  origin: 'https://www.cdesport.com',   // <-- ton vrai domaine, PAS process.env ici !
+  origin: 'https://www.cdesport.com',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
 }));
@@ -30,6 +31,7 @@ connectDB();
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/tournament', tournamentParticipantRoutes);
+app.use('/api/tournaments', tournamentRoutes); // 🔥 Ajouté ici
 app.use('/api/ranking', globalRankingRoutes);
 app.use('/api/badges', badgeRoutes);
 
@@ -43,7 +45,7 @@ app.use((req, res, next) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-// 🚀 Start server with 0.0.0.0 for Render
+// 🚀 Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`📦 Backend server started on port ${PORT} 🚀`);
 });
