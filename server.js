@@ -16,9 +16,21 @@ const tournamentRoutes = require('./routes/tournamentRoutes');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ✅ CORS configuration
+// ✅ CORS configuration (supporte www.cdesport.com + localhost + preview Vercel si tu veux)
+const allowedOrigins = [
+  'https://www.cdesport.com',
+  'http://localhost:3000',
+  'https://cddesport-7jhcl232w-charlys-projects-d00150b3.vercel.app' // (facultatif: pour testing Vercel)
+];
+
 app.use(cors({
-  origin: 'https://www.cdesport.com', // Ton domaine frontend
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
 }));
@@ -41,12 +53,12 @@ app.get('/', (req, res) => {
   res.send('✅ Backend is up and running!');
 });
 
-// ❌ 404 API handler
+// ❌ 404 handler
 app.use((req, res, next) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-// 🚀 Start server
+// 🚀 Start server (Render.io requires 0.0.0.0)
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`📦 Backend server started on port ${PORT} 🚀`);
 });
