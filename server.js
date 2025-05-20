@@ -12,6 +12,7 @@ const tournamentParticipantRoutes = require('./routes/tournamentParticipantRoute
 const globalRankingRoutes = require('./routes/globalRankingRoutes');
 const badgeRoutes = require('./routes/badgeRoutes');
 const tournamentRoutes = require('./routes/tournamentRoutes');
+const valorantRoutes = require('./routes/valorantRoutes'); // ✅ Ajouté ici
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,6 +36,7 @@ app.use('/api/tournament', tournamentParticipantRoutes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/ranking', globalRankingRoutes);
 app.use('/api/badges', badgeRoutes);
+app.use('/api/valorant', valorantRoutes); // ✅ Intégré ici
 
 // ✅ Test route
 app.get('/', (req, res) => {
